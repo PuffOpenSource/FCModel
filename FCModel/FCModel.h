@@ -50,6 +50,8 @@ extern NSString * const FCModelChangedFieldsKey;
 + (void)openDatabaseAtPath:(NSString *)path withDatabaseInitializer:(void (^)(FMDatabase *db))databaseInitializer schemaBuilder:(void (^)(FMDatabase *db, int *schemaVersion))schemaBuilder;
 + (void)openDatabaseAtPath:(NSString *)path withDatabaseInitializer:(void (^)(FMDatabase *db))databaseInitializer schemaBuilder:(void (^)(FMDatabase *db, int *schemaVersion))schemaBuilder moduleName:(NSString *)moduleName;
 
++ (void)openDatabaseAtPath:(NSString *)path withDatabaseInitializer:(void (^)(FMDatabase *db))databaseInitializer schemaBuilder:(void (^)(FMDatabase *db, int *schemaVersion))schemaBuilder moduleName:(NSString *)moduleName className:(NSString*)clazz;
+
 + (NSArray *)databaseFieldNames;
 + (NSString *)primaryKeyFieldName;
 

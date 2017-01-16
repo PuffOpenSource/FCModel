@@ -29,6 +29,7 @@ static NSDictionary *g_fieldInfo = NULL;
 static NSDictionary *g_ignoredFieldNames = NULL;
 static NSDictionary *g_primaryKeyFieldName = NULL;
 static NSString *g_modulePrefix = NULL;
+static NSString *g_reservedTableName = NULL;
 static void (^dbErrorHandler)(NSException *proposedException, int dbErrorCode, NSString *dbErrorMessage) = NULL;
 
 typedef NS_ENUM(char, FCModelInDatabaseStatus) {
@@ -696,7 +697,7 @@ static inline BOOL checkForOpenDatabaseFatal(BOOL fatal)
 - (id)primaryKey { return [self valueForKey:g_primaryKeyFieldName[self.class]]; }
 
 + (NSString *)tableName {
-    NSString *className = NSStringFromClass(self);
+    NSString *className = g_reservedTableName? : NSStringFromClass(self);
     if (g_modulePrefix) className = [className substringFromIndex:g_modulePrefix.length];
     return className;
 }
@@ -761,7 +762,11 @@ static inline BOOL checkForOpenDatabaseFatal(BOOL fatal)
     [self openDatabaseAtPath:path withDatabaseInitializer:databaseInitializer schemaBuilder:schemaBuilder moduleName:nil];
 }
 
-+ (void)openDatabaseAtPath:(NSString *)path withDatabaseInitializer:(void (^)(FMDatabase *db))databaseInitializer schemaBuilder:(void (^)(FMDatabase *db, int *schemaVersion))schemaBuilder moduleName:(NSString *)moduleName
++ (void)openDatabaseAtPath:(NSString *)path withDatabaseInitializer:(void (^)(FMDatabase *db))databaseInitializer schemaBuilder:(void (^)(FMDatabase *db, int *schemaVersion))schemaBuilder moduleName:(NSString *)moduleName {
+    [self openDatabaseAtPath:path withDatabaseInitializer:databaseInitializer schemaBuilder:schemaBuilder moduleName:nil className:nil];
+}
+
++ (void)openDatabaseAtPath:(NSString *)path withDatabaseInitializer:(void (^)(FMDatabase *db))databaseInitializer schemaBuilder:(void (^)(FMDatabase *db, int *schemaVersion))schemaBuilder moduleName:(NSString *)moduleName className:(NSString *)clazz
 {
     NSParameterAssert(NSThread.isMainThread);
     
@@ -795,13 +800,17 @@ static inline BOOL checkForOpenDatabaseFatal(BOOL fatal)
        ];
         while ([tablesRS next]) {
             NSString *tableName = [tablesRS stringForColumnIndex:0];
-            NSString *tableClass = tableName;
+            NSString *tableClass = clazz?:tableName;
             if (moduleName) {
                 g_modulePrefix = [moduleName stringByAppendingString:@"."];
                 tableClass = [g_modulePrefix stringByAppendingString:tableClass];
             }
             Class tableModelClass = NSClassFromString(tableClass);
             if (! tableModelClass || ! [tableModelClass isSubclassOfClass:self]) continue;
+            
+            if (clazz) {
+                g_reservedTableName = tableName;
+            }
             
             NSString *primaryKeyName = nil;
             int primaryKeyColumnCount = 0;
